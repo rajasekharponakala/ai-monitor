@@ -1,0 +1,37 @@
+services:
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+      # NOTE: page fetches same-origin /api/* by default; keep empty.
+      args:
+        NEXT_PUBLIC_API_BASE: ""
+    ports:
+      - "127.0.0.1:3002:3000"
+    volumes:
+      - ./config.toml:/config.toml:ro
+      - ai-data:/data
+    environment:
+      CM_CONFIG: /config.toml
+      CM_DB: /data/ai-monitor.db
+      CRON_SECRET: ${CRON_SECRET:-}
+    restart: unless-stopped
+
+  collector:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    volumes:
+      - ./config.toml:/config.toml:ro
+      - ai-data:/data
+    environment:
+      APP_BASE: http://dashboard:3000
+      CRON_SECRET: ${CRON_SECRET:-}
+      INTERVAL_MIN: ${INTERVAL_MIN:-30}
+    command: ["node", "scripts/collect-loop.mjs"]
+    depends_on:
+      - dashboard
+    restart: unless-stopped
+
+volumes:
+  ai-data:
